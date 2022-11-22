@@ -6,23 +6,32 @@ import bcrypt
 from models import *
 from shemas import *
 
+from flask_httpauth import HTTPBasicAuth
+from flask_jwt import current_identity
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, JWTManager
+from werkzeug.security import generate_password_hash, check_password_hash
+import json
+
 app = Flask(__name__)
 api = Api(app)
 
-
+auth = HTTPBasicAuth()
+jwt = JWTManager(app)
+app.config["JWT_SECRET_KEY"] = "HS256"
 class Error():
+    @staticmethod
     def invalid_id():
         invalid_id = make_response({"Error": "Invalid id"})
         invalid_id.status_code = 400
         return invalid_id
 
-
+    @staticmethod
     def not_found():
         not_found = make_response({"Error": "Not found"})
         not_found.status_code = 404
         return not_found
 
-
+    @staticmethod
     def invalid_input():
         invalid_input = make_response({"Error": "Invalid input"})
         invalid_input.status_code = 405
@@ -38,6 +47,7 @@ class methods():
 
 
 class TrainersAPI(Resource):
+    @staticmethod
     def requestTrainers():
         cTrainer = {
             "idtrainer": request.form["idtrainer"],
@@ -127,6 +137,7 @@ class TrainersWithParamAPI(Resource):
 
 
 class OrderAPI(Resource):
+    @staticmethod
     def requestOrder():
         cOrder = {
             "idorder": request.form["idorder"],
@@ -200,6 +211,7 @@ class InventoryAPI(Resource):
 
 
 class UserAPI(Resource):
+    @staticmethod
     def requestUser():
         cUser = {
             "iduser": request.form["iduser"],
@@ -252,7 +264,6 @@ class UserWithParamAPI(Resource):
         for id, name, fN, phone, email, password in cUser:
             return {"iduser": id, "username": name, "full_name": fN, "phone_number": phone, "email": email, "password": password}
 
-
     def get(self, username):
         cUser = UserWithParamAPI.getUser(username)
         if cUser == None:
@@ -281,7 +292,7 @@ class UserWithParamAPI(Resource):
         connection.execute(update_user)
         return UserWithParamAPI.getUser(cUser["username"])
 
-
+    @jwt_required()
     def delete(self, username):
         if UserWithParamAPI.getUser(username) == None:
             return Error.invalid_id()
@@ -291,15 +302,30 @@ class UserWithParamAPI(Resource):
 
 
 class LoginAPI(Resource):
+    @staticmethod
     def requestLogin():
         loginData = {
-            "login": request.form["login"],
+            "username": request.form["username"],
             "password": request.form["password"]
         }
 
         return loginData
+    def post(self):
+        log = LoginAPI.requestLogin()
+        user = UserWithParamAPI.getUser(log.get("username"))
 
+        if not user:
+            return "User doesn`t exist"
 
+        if log.get("password") == user.get("password") :
+            access_token = create_access_token(identity=user.get("username"))
+            return access_token
+        else:
+            return "False password"
+
+        return "Not avaible"
+
+"""
     def put(self):
         loginData = LoginAPI.requestLogin()
 
@@ -311,7 +337,7 @@ class LoginAPI(Resource):
             return Error.invalid_input()
 
         return correctData
-
+"""
 
 class LogoutAPI(Resource):
     def get(self):

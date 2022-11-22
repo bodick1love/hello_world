@@ -34,7 +34,8 @@ order_and_trainer = Table("order_and_trainer", meta,
             Column("count", Integer, primary_key = True),
 )
 
-engine = create_engine("mysql+mysqlconnector://root:root@localhost:3306/shop")
+#engine = create_engine("mysql+mysqlconnector://root:root@localhost:3306/shop")
+engine = create_engine('mysql+pymysql://root:12345678!Q@127.0.0.1:3306/shop')
 meta.create_all(engine)
 
 connection = engine.connect()
